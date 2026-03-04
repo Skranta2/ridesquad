@@ -89,6 +89,11 @@ const dictionaries: Dictionaries = {
     'connect.scanQr': 'Scan QR',
     'connect.comingSoon': 'Coming soon',
     'connect.footerNote': 'Auth, subscriptions, and invites will be wired next.',
+    'connect.enterInviteLink': 'Enter Invite Link',
+    'connect.enterInviteLinkDescription': 'Paste an invite link you received to join a friend, team, or session.',
+    'connect.inviteLinkPlaceholder': 'Paste invite link...',
+    'connect.joinWithLink': 'Join',
+    'connect.invalidLink': 'Invalid link. Please paste a complete RideSquad invite link.',
 
     // Friends
     'friends.title': 'Friends',
@@ -299,6 +304,11 @@ const dictionaries: Dictionaries = {
     'connect.scanQr': 'Skanna QR',
     'connect.comingSoon': 'Kommer snart',
     'connect.footerNote': 'Autentisering, prenumerationer och inbjudningar kommer härnäst.',
+    'connect.enterInviteLink': 'Ange inbjudningslänk',
+    'connect.enterInviteLinkDescription': 'Klistra in en inbjudningslänk för att gå med som vän, i ett team eller en session.',
+    'connect.inviteLinkPlaceholder': 'Klistra in länk...',
+    'connect.joinWithLink': 'Gå med',
+    'connect.invalidLink': 'Ogiltig länk. Klistra in en komplett RideSquad-inbjudningslänk.',
 
     // Friends
     'friends.title': 'Vänner',
@@ -509,6 +519,11 @@ const dictionaries: Dictionaries = {
     'connect.scanQr': 'Skannaa QR',
     'connect.comingSoon': 'Tulossa pian',
     'connect.footerNote': 'Todennus, tilaukset ja kutsut tulossa seuraavaksi.',
+    'connect.enterInviteLink': 'Syötä kutsulinkki',
+    'connect.enterInviteLinkDescription': 'Liitä saamasi kutsulinkki liittyäksesi ystävään, tiimiin tai istuntoon.',
+    'connect.inviteLinkPlaceholder': 'Liitä kutsulinkki...',
+    'connect.joinWithLink': 'Liity',
+    'connect.invalidLink': 'Virheellinen linkki. Liitä täydellinen RideSquad-kutsulinkki.',
 
     // Friends
     'friends.title': 'Ystävät',
@@ -717,6 +732,11 @@ const dictionaries: Dictionaries = {
     'connect.scanQr': 'Skann QR',
     'connect.comingSoon': 'Kommer snart',
     'connect.footerNote': 'Autentisering, abonnementer og invitasjoner kommer snart.',
+    'connect.enterInviteLink': 'Skriv inn invitasjonslenke',
+    'connect.enterInviteLinkDescription': 'Lim inn en invitasjonslenke du har mottatt for å bli venn, bli med i et team eller en økt.',
+    'connect.inviteLinkPlaceholder': 'Lim inn invitasjonslenke...',
+    'connect.joinWithLink': 'Bli med',
+    'connect.invalidLink': 'Ugyldig lenke. Lim inn en komplett RideSquad-invitasjonslenke.',
 
     // Friends
     'friends.title': 'Venner',
@@ -925,6 +945,11 @@ const dictionaries: Dictionaries = {
     'connect.scanQr': 'QR scannen',
     'connect.comingSoon': 'Demnächst',
     'connect.footerNote': 'Authentifizierung, Abonnements und Einladungen kommen als nächstes.',
+    'connect.enterInviteLink': 'Einladungslink eingeben',
+    'connect.enterInviteLinkDescription': 'Fügen Sie einen Einladungslink ein, um einem Freund, Team oder einer Sitzung beizutreten.',
+    'connect.inviteLinkPlaceholder': 'Einladungslink einfügen...',
+    'connect.joinWithLink': 'Beitreten',
+    'connect.invalidLink': 'Ungültiger Link. Bitte fügen Sie einen vollständigen RideSquad-Einladungslink ein.',
 
     // Friends
     'friends.title': 'Freunde',
@@ -1133,6 +1158,11 @@ const dictionaries: Dictionaries = {
     'connect.scanQr': 'Escanear QR',
     'connect.comingSoon': 'Próximamente',
     'connect.footerNote': 'Autenticación, suscripciones e invitaciones próximamente.',
+    'connect.enterInviteLink': 'Ingresar enlace de invitación',
+    'connect.enterInviteLinkDescription': 'Pega un enlace de invitación para unirte a un amigo, equipo o sesión.',
+    'connect.inviteLinkPlaceholder': 'Pegar enlace de invitación...',
+    'connect.joinWithLink': 'Unirse',
+    'connect.invalidLink': 'Enlace inválido. Por favor pega un enlace de invitación completo de RideSquad.',
 
     // Friends
     'friends.title': 'Amigos',

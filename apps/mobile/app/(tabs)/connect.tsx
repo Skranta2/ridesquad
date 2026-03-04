@@ -1,5 +1,7 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { Text } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -10,6 +12,23 @@ export default function ConnectScreen() {
   const { t } = useTranslation();
   const colorScheme = useColorScheme() ?? 'light';
   const palette = Colors[colorScheme];
+  const router = useRouter();
+  const [inviteLink, setInviteLink] = useState('');
+
+  const handleJoinWithLink = () => {
+    const trimmed = inviteLink.trim();
+    const match = trimmed.match(/invite\/(session|team|friend)\/([a-z0-9]+)/i);
+    if (!match) {
+      Alert.alert(t('common.error'), t('connect.invalidLink'));
+      return;
+    }
+    const [, type, token] = match;
+    setInviteLink('');
+    router.push({
+      pathname: '/accept-invite',
+      params: { type, token },
+    } as any);
+  };
 
   return (
     <ScrollView
@@ -51,6 +70,45 @@ export default function ConnectScreen() {
           <Text style={[styles.secondaryButtonText, { color: palette.tint }]}>
             {t('connect.scanQr')} ({t('connect.comingSoon')})
           </Text>
+        </Pressable>
+      </View>
+
+      {/* Enter Invite Link */}
+      <View style={[styles.card, { backgroundColor: palette.cardBackground, borderColor: palette.separator }]}>
+        <Text style={styles.cardTitle}>{t('connect.enterInviteLink')}</Text>
+        <Text style={[styles.cardSubtitle, { color: palette.secondaryText }]}>
+          {t('connect.enterInviteLinkDescription')}
+        </Text>
+        <TextInput
+          style={[
+            styles.linkInput,
+            {
+              color: colorScheme === 'dark' ? '#fff' : '#000',
+              borderColor: palette.separator,
+              backgroundColor: palette.groupedBackground,
+            },
+          ]}
+          value={inviteLink}
+          onChangeText={setInviteLink}
+          placeholder={t('connect.inviteLinkPlaceholder')}
+          placeholderTextColor={palette.secondaryText}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="go"
+          onSubmitEditing={handleJoinWithLink}
+        />
+        <Pressable
+          onPress={handleJoinWithLink}
+          disabled={!inviteLink.trim()}
+          style={({ pressed }) => [
+            styles.primaryButton,
+            {
+              backgroundColor: pressed ? palette.cardPressed : palette.tint,
+              opacity: inviteLink.trim() ? 1 : 0.4,
+            },
+          ]}>
+          <FontAwesome name="sign-in" size={16} color="#fff" />
+          <Text style={styles.primaryButtonText}>{t('connect.joinWithLink')}</Text>
         </Pressable>
       </View>
 
@@ -112,6 +170,14 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  linkInput: {
+    marginTop: 10,
+    height: 42,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 15,
   },
   footerNote: {
     marginTop: 4,
