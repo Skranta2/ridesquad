@@ -169,7 +169,7 @@ export default function FriendsScreen() {
   const handleCopyCode = useCallback(async () => {
     const token = await getOrCreateToken();
     if (!token) return;
-    await Clipboard.setStringAsync(token);
+    await Clipboard.setStringAsync(buildInviteLink('friend', token));
     Alert.alert(t('friends.codeCopied'), t('friends.codeCopiedHint'));
   }, [getOrCreateToken, t]);
 
