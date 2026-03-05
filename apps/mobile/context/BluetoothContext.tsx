@@ -18,6 +18,7 @@ import {
   isDeviceConnected,
   openBluetoothSettings,
   destroyManager,
+  isBleSupported,
 } from '@/lib/bluetoothManager';
 
 // ============================================================================
@@ -119,9 +120,11 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // --------------------------------------------------------------------------
-  // Monitor Bluetooth state
+  // Monitor Bluetooth state (no-op on simulator — isBleSupported() is false)
   // --------------------------------------------------------------------------
   useEffect(() => {
+    if (!isBleSupported()) return; // Simulator / unsupported device
+
     const subscription = onBluetoothStateChange((state) => {
       setBluetoothEnabled(state === State.PoweredOn);
     });

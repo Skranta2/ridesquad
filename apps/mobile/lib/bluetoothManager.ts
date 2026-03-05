@@ -3,15 +3,30 @@
 // BLE service layer using react-native-ble-plx
 // ============================================================================
 
-import { Platform, PermissionsAndroid, Linking } from 'react-native';
+import { Platform, PermissionsAndroid, Linking, NativeModules } from 'react-native';
 import { BleManager, Device, State } from 'react-native-ble-plx';
 
 // Singleton BleManager instance
 let manager: BleManager | null = null;
 
-function getManager(): BleManager {
+/**
+ * Returns true if BLE native module is available.
+ * It is NOT available on iOS/Android simulators or when the native
+ * module failed to link — so we guard all BLE calls with this check.
+ */
+export function isBleSupported(): boolean {
+  return !!(NativeModules as any).BleClientManager;
+}
+
+function getManager(): BleManager | null {
+  if (!isBleSupported()) return null;
   if (!manager) {
-    manager = new BleManager();
+    try {
+      manager = new BleManager();
+    } catch (e) {
+      console.warn('RideSquad: Failed to initialize BleManager:', e);
+      return null;
+    }
   }
   return manager;
 }
@@ -58,6 +73,7 @@ export async function requestBluetoothPermissions(): Promise<boolean> {
 
 export async function getBluetoothState(): Promise<State> {
   const mgr = getManager();
+  if (!mgr) return State.Unsupported;
   return mgr.state();
 }
 
@@ -65,6 +81,8 @@ export function onBluetoothStateChange(
   callback: (state: State) => void
 ): { remove: () => void } {
   const mgr = getManager();
+  if (!mgr) return { remove: () => {} }; // no-op on simulator
+
   const subscription = mgr.onStateChange((state) => {
     callback(state);
   }, true); // true = emit current state immediately
@@ -85,6 +103,7 @@ export function startScan(
   durationMs: number = 15000
 ): void {
   const mgr = getManager();
+  if (!mgr) return; // no-op on simulator
 
   // Stop any existing scan
   stopScan();
@@ -111,6 +130,8 @@ export function startScan(
 
 export function stopScan(): void {
   const mgr = getManager();
+  if (!mgr) return; // no-op on simulator
+
   mgr.stopDeviceScan();
 
   if (scanTimeout) {
@@ -125,6 +146,7 @@ export function stopScan(): void {
 
 export async function connectToDevice(deviceId: string): Promise<Device> {
   const mgr = getManager();
+  if (!mgr) throw new Error('Bluetooth not supported on this device');
 
   const device = await mgr.connectToDevice(deviceId, {
     timeout: 10000, // 10 second connection timeout
@@ -138,11 +160,13 @@ export async function connectToDevice(deviceId: string): Promise<Device> {
 
 export async function disconnectDevice(deviceId: string): Promise<void> {
   const mgr = getManager();
+  if (!mgr) return;
   await mgr.cancelDeviceConnection(deviceId);
 }
 
 export async function isDeviceConnected(deviceId: string): Promise<boolean> {
   const mgr = getManager();
+  if (!mgr) return false;
   try {
     return await mgr.isDeviceConnected(deviceId);
   } catch {
@@ -193,3 +217,4 @@ export function destroyManager(): void {
     manager = null;
   }
 }
+
