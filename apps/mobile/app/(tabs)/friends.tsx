@@ -8,10 +8,13 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  Share,
+  Modal,
+  Linking,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import * as Clipboard from 'expo-clipboard';
+import QRCode from 'react-native-qrcode-svg';
 
 import { Text } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -51,6 +54,18 @@ export default function FriendsScreen() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [addingUserId, setAddingUserId] = useState<string | null>(null);
+
+  // Invite state — one token per panel open, shared across all 3 invite methods
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [qrVisible, setQrVisible] = useState(false);
+
+  const closeAddFriendPanel = () => {
+    setShowAddFriend(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    setInviteToken(null);
+  };
 
   const loadData = useCallback(async () => {
     if (!profile) return;
@@ -124,20 +139,52 @@ export default function FriendsScreen() {
     }
   };
 
-  const handleShareInviteLink = async () => {
-    if (!profile) return;
+  // --------------------------------------------------------------------------
+  // Invite helpers — creates one token per panel session, reused across methods
+  // --------------------------------------------------------------------------
+
+  const getOrCreateToken = useCallback(async (): Promise<string | null> => {
+    if (!profile) return null;
+    if (inviteToken) return inviteToken;
+
+    setInviteLoading(true);
     try {
       const invite = await createInvite('friend', profile.id, profile.id);
-      const link = buildInviteLink('friend', invite.token);
-      await Share.share({
-        message: t('friends.inviteShareMessage').replace('{link}', link),
-      });
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        Alert.alert(t('common.error'), t('friends.inviteFailed'));
-      }
+      setInviteToken(invite.token);
+      return invite.token;
+    } catch (err: any) {
+      Alert.alert(t('common.error'), t('friends.inviteFailed'));
+      return null;
+    } finally {
+      setInviteLoading(false);
     }
-  };
+  }, [profile, inviteToken, t]);
+
+  const handleShowQr = useCallback(async () => {
+    const token = await getOrCreateToken();
+    if (!token) return;
+    setQrVisible(true);
+  }, [getOrCreateToken]);
+
+  const handleCopyCode = useCallback(async () => {
+    const token = await getOrCreateToken();
+    if (!token) return;
+    await Clipboard.setStringAsync(token);
+    Alert.alert(t('friends.codeCopied'), t('friends.codeCopiedHint'));
+  }, [getOrCreateToken, t]);
+
+  const handleSendEmail = useCallback(async () => {
+    const token = await getOrCreateToken();
+    if (!token) return;
+    const link = buildInviteLink('friend', token);
+    const subject = encodeURIComponent(t('friends.emailSubject'));
+    const body = encodeURIComponent(
+      t('friends.emailBody').replace('{code}', token).replace('{link}', link)
+    );
+    Linking.openURL(`mailto:?subject=${subject}&body=${body}`);
+  }, [getOrCreateToken, t]);
+
+  // --------------------------------------------------------------------------
 
   const handleRemoveFavorite = (favoriteId: string, name: string) => {
     Alert.alert(
@@ -208,7 +255,7 @@ export default function FriendsScreen() {
         <View style={[styles.card, { backgroundColor: palette.cardBackground, borderColor: palette.separator }]}>
           <View style={styles.addFriendHeader}>
             <Text style={styles.cardTitle}>{t('friends.addFriend')}</Text>
-            <TouchableOpacity onPress={() => { setShowAddFriend(false); setSearchQuery(''); setSearchResults([]); }}>
+            <TouchableOpacity onPress={closeAddFriendPanel}>
               <FontAwesome name="times" size={18} color={palette.secondaryText} />
             </TouchableOpacity>
           </View>
@@ -278,20 +325,68 @@ export default function FriendsScreen() {
             </Text>
           )}
 
-          {/* Share Invite Link */}
+          {/* ── 3 Invite Options ── */}
           <View style={[styles.divider, { backgroundColor: palette.separator }]} />
-          <TouchableOpacity
-            style={styles.shareRow}
-            onPress={handleShareInviteLink}
-          >
-            <FontAwesome name="share-alt" size={16} color={palette.tint} />
-            <Text style={[styles.shareText, { color: palette.tint }]}>
-              {t('friends.shareInviteLink')}
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.shareHint, { color: palette.secondaryText }]}>
-            {t('friends.shareInviteHint')}
+          <Text style={[styles.inviteSectionTitle, { color: palette.secondaryText }]}>
+            {t('friends.inviteOptions')}
           </Text>
+
+          {/* 1. Show QR Code */}
+          <TouchableOpacity
+            style={styles.inviteRow}
+            onPress={handleShowQr}
+            disabled={inviteLoading}
+          >
+            <View style={[styles.inviteIconBox, { backgroundColor: palette.tint + '22' }]}>
+              <FontAwesome name="qrcode" size={20} color={palette.tint} />
+            </View>
+            <Text style={[styles.inviteRowTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+              {t('friends.showQrCode')}
+            </Text>
+            {inviteLoading ? (
+              <ActivityIndicator size="small" color={palette.tint} />
+            ) : (
+              <FontAwesome name="chevron-right" size={13} color={palette.secondaryText} />
+            )}
+          </TouchableOpacity>
+
+          {/* 2. Copy Invite Code */}
+          <TouchableOpacity
+            style={styles.inviteRow}
+            onPress={handleCopyCode}
+            disabled={inviteLoading}
+          >
+            <View style={[styles.inviteIconBox, { backgroundColor: palette.tint + '22' }]}>
+              <FontAwesome name="copy" size={18} color={palette.tint} />
+            </View>
+            <Text style={[styles.inviteRowTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+              {t('friends.copyCode')}
+            </Text>
+            {inviteLoading ? (
+              <ActivityIndicator size="small" color={palette.tint} />
+            ) : (
+              <FontAwesome name="chevron-right" size={13} color={palette.secondaryText} />
+            )}
+          </TouchableOpacity>
+
+          {/* 3. Send via Email */}
+          <TouchableOpacity
+            style={styles.inviteRow}
+            onPress={handleSendEmail}
+            disabled={inviteLoading}
+          >
+            <View style={[styles.inviteIconBox, { backgroundColor: palette.tint + '22' }]}>
+              <FontAwesome name="envelope" size={16} color={palette.tint} />
+            </View>
+            <Text style={[styles.inviteRowTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+              {t('friends.sendEmail')}
+            </Text>
+            {inviteLoading ? (
+              <ActivityIndicator size="small" color={palette.tint} />
+            ) : (
+              <FontAwesome name="chevron-right" size={13} color={palette.secondaryText} />
+            )}
+          </TouchableOpacity>
         </View>
       )}
 
@@ -401,6 +496,50 @@ export default function FriendsScreen() {
           </Text>
         )}
       </View>
+
+      {/* ── QR Code Modal ── */}
+      <Modal
+        visible={qrVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setQrVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: palette.cardBackground }]}>
+            <Text style={[styles.modalTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+              {t('friends.qrCodeTitle')}
+            </Text>
+
+            {/* QR always on white background for max scanner compatibility */}
+            <View style={styles.qrBox}>
+              {inviteToken && (
+                <QRCode
+                  value={buildInviteLink('friend', inviteToken)}
+                  size={220}
+                  color="#000000"
+                  backgroundColor="#FFFFFF"
+                />
+              )}
+            </View>
+
+            {/* Show the raw code so the friend can type it manually */}
+            <Text style={[styles.modalToken, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+              {inviteToken}
+            </Text>
+
+            <Text style={[styles.modalHint, { color: palette.secondaryText }]}>
+              {t('friends.qrCodeHint')}
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.closeButton, { backgroundColor: palette.tint }]}
+              onPress={() => setQrVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>{t('common.close')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -466,20 +605,30 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     marginVertical: 12,
   },
-  shareRow: {
+  inviteSectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  inviteRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 4,
+    paddingVertical: 10,
+    gap: 12,
   },
-  shareText: {
+  inviteIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inviteRowTitle: {
     fontSize: 16,
-    fontWeight: '600',
-  },
-  shareHint: {
-    fontSize: 13,
-    marginTop: 4,
-    lineHeight: 18,
+    fontWeight: '500',
+    flex: 1,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -549,5 +698,51 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 14,
     paddingVertical: 4,
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    width: '100%',
+    gap: 14,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  qrBox: {
+    padding: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+  },
+  modalToken: {
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+  modalHint: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  closeButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

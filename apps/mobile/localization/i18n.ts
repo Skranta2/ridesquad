@@ -93,7 +93,7 @@ const dictionaries: Dictionaries = {
     'connect.enterInviteLinkDescription': 'Paste an invite link you received to join a friend, team, or session.',
     'connect.inviteLinkPlaceholder': 'Paste invite link...',
     'connect.joinWithLink': 'Join',
-    'connect.invalidLink': 'Invalid link. Please paste a complete RideSquad invite link.',
+    'connect.invalidLink': 'Invalid code or link. Paste a RideSquad invite link, or enter just the invite code.',
 
     // Friends
     'friends.title': 'Friends',
@@ -125,6 +125,16 @@ const dictionaries: Dictionaries = {
     'friends.shareInviteHint': 'Send a link to someone not yet on RideSquad.',
     'friends.inviteShareMessage': 'Join me on RideSquad! {link}',
     'friends.inviteFailed': 'Failed to create invite. Try again.',
+    'friends.inviteOptions': 'Invite to RideSquad',
+    'friends.showQrCode': 'Show QR Code',
+    'friends.copyCode': 'Copy Invite Code',
+    'friends.codeCopied': 'Copied!',
+    'friends.codeCopiedHint': 'Paste the code in the Connect tab.',
+    'friends.sendEmail': 'Send via Email',
+    'friends.emailSubject': 'Join me on RideSquad',
+    'friends.emailBody': 'Hey! Join me on RideSquad.\n\nEnter this code in the Connect tab of the app:\n{code}\n\nOr tap this link:\n{link}',
+    'friends.qrCodeTitle': 'Show to your friend',
+    'friends.qrCodeHint': 'They can scan this QR code with their camera, or enter the code manually in the Connect tab.',
 
     // Teams
     'teams.title': 'Teams',
@@ -194,6 +204,7 @@ const dictionaries: Dictionaries = {
     'common.save': 'Save',
     'common.delete': 'Delete',
     'common.confirm': 'Confirm',
+    'common.close': 'Close',
 
     // Bluetooth
     'bluetooth.title': 'Audio Device',
@@ -308,7 +319,7 @@ const dictionaries: Dictionaries = {
     'connect.enterInviteLinkDescription': 'Klistra in en inbjudningslänk för att gå med som vän, i ett team eller en session.',
     'connect.inviteLinkPlaceholder': 'Klistra in länk...',
     'connect.joinWithLink': 'Gå med',
-    'connect.invalidLink': 'Ogiltig länk. Klistra in en komplett RideSquad-inbjudningslänk.',
+    'connect.invalidLink': 'Ogiltig kod eller länk. Klistra in en RideSquad-länk eller ange enbart inbjudningskoden.',
 
     // Friends
     'friends.title': 'Vänner',
@@ -340,6 +351,16 @@ const dictionaries: Dictionaries = {
     'friends.shareInviteHint': 'Skicka en länk till någon som inte har RideSquad.',
     'friends.inviteShareMessage': 'Gå med mig på RideSquad! {link}',
     'friends.inviteFailed': 'Kunde inte skapa inbjudan. Försök igen.',
+    'friends.inviteOptions': 'Bjud in till RideSquad',
+    'friends.showQrCode': 'Visa QR-kod',
+    'friends.copyCode': 'Kopiera inbjudningskod',
+    'friends.codeCopied': 'Kopierad!',
+    'friends.codeCopiedHint': 'Klistra in koden på Anslut-fliken.',
+    'friends.sendEmail': 'Skicka via e-post',
+    'friends.emailSubject': 'Gå med mig på RideSquad',
+    'friends.emailBody': 'Hej! Gå med mig på RideSquad.\n\nAnge denna kod på Anslut-fliken i appen:\n{code}\n\nEller tryck på länken:\n{link}',
+    'friends.qrCodeTitle': 'Visa för din vän',
+    'friends.qrCodeHint': 'De kan skanna QR-koden med kameran, eller ange koden manuellt på Anslut-fliken.',
 
     // Teams
     'teams.title': 'Team',
@@ -409,6 +430,7 @@ const dictionaries: Dictionaries = {
     'common.save': 'Spara',
     'common.delete': 'Ta bort',
     'common.confirm': 'Bekräfta',
+    'common.close': 'Stäng',
 
     // Bluetooth
     'bluetooth.title': 'Ljudenhet',
@@ -523,7 +545,7 @@ const dictionaries: Dictionaries = {
     'connect.enterInviteLinkDescription': 'Liitä saamasi kutsulinkki liittyäksesi ystävään, tiimiin tai istuntoon.',
     'connect.inviteLinkPlaceholder': 'Liitä kutsulinkki...',
     'connect.joinWithLink': 'Liity',
-    'connect.invalidLink': 'Virheellinen linkki. Liitä täydellinen RideSquad-kutsulinkki.',
+    'connect.invalidLink': 'Virheellinen koodi tai linkki. Liitä RideSquad-kutsulinkki tai syötä pelkkä kutsukoodi.',
 
     // Friends
     'friends.title': 'Ystävät',
@@ -553,6 +575,16 @@ const dictionaries: Dictionaries = {
     'friends.shareInviteHint': 'Lähetä linkki jollekulle, joka ei vielä käytä RideSquadia.',
     'friends.inviteShareMessage': 'Liity seuraani RideSquadissa! {link}',
     'friends.inviteFailed': 'Kutsun luominen epäonnistui. Yritä uudelleen.',
+    'friends.inviteOptions': 'Kutsu RideSquadiin',
+    'friends.showQrCode': 'Näytä QR-koodi',
+    'friends.copyCode': 'Kopioi kutsukoodi',
+    'friends.codeCopied': 'Kopioitu!',
+    'friends.codeCopiedHint': 'Liitä koodi Yhdistä-välilehdelle.',
+    'friends.sendEmail': 'Lähetä sähköpostilla',
+    'friends.emailSubject': 'Liity seuraani RideSquadissa',
+    'friends.emailBody': 'Hei! Liity seuraani RideSquadissa.\n\nSyötä tämä koodi sovelluksen Yhdistä-välilehdellä:\n{code}\n\nTai napauta linkkiä:\n{link}',
+    'friends.qrCodeTitle': 'Näytä ystävällesi',
+    'friends.qrCodeHint': 'He voivat skannata QR-koodin kameralla tai syöttää koodin manuaalisesti Yhdistä-välilehdellä.',
 
     // Teams
     'teams.title': 'Tiimit',
@@ -622,6 +654,7 @@ const dictionaries: Dictionaries = {
     'common.save': 'Tallenna',
     'common.delete': 'Poista',
     'common.confirm': 'Vahvista',
+    'common.close': 'Sulje',
 
     // Bluetooth
     'bluetooth.title': 'Äänilaite',
@@ -736,7 +769,7 @@ const dictionaries: Dictionaries = {
     'connect.enterInviteLinkDescription': 'Lim inn en invitasjonslenke du har mottatt for å bli venn, bli med i et team eller en økt.',
     'connect.inviteLinkPlaceholder': 'Lim inn invitasjonslenke...',
     'connect.joinWithLink': 'Bli med',
-    'connect.invalidLink': 'Ugyldig lenke. Lim inn en komplett RideSquad-invitasjonslenke.',
+    'connect.invalidLink': 'Ugyldig kode eller lenke. Lim inn en RideSquad-lenke, eller skriv bare inn invitasjonskoden.',
 
     // Friends
     'friends.title': 'Venner',
@@ -766,6 +799,16 @@ const dictionaries: Dictionaries = {
     'friends.shareInviteHint': 'Send en lenke til noen som ikke har RideSquad.',
     'friends.inviteShareMessage': 'Bli med meg på RideSquad! {link}',
     'friends.inviteFailed': 'Kunne ikke opprette invitasjon. Prøv igjen.',
+    'friends.inviteOptions': 'Inviter til RideSquad',
+    'friends.showQrCode': 'Vis QR-kode',
+    'friends.copyCode': 'Kopier invitasjonskode',
+    'friends.codeCopied': 'Kopiert!',
+    'friends.codeCopiedHint': 'Lim inn koden i Koble til-fanen.',
+    'friends.sendEmail': 'Send via e-post',
+    'friends.emailSubject': 'Bli med meg på RideSquad',
+    'friends.emailBody': 'Hei! Bli med meg på RideSquad.\n\nSkriv inn denne koden i Koble til-fanen i appen:\n{code}\n\nEller trykk på lenken:\n{link}',
+    'friends.qrCodeTitle': 'Vis til din venn',
+    'friends.qrCodeHint': 'De kan skanne QR-koden med kameraet, eller skrive inn koden manuelt i Koble til-fanen.',
 
     // Teams
     'teams.title': 'Team',
@@ -835,6 +878,7 @@ const dictionaries: Dictionaries = {
     'common.save': 'Lagre',
     'common.delete': 'Slett',
     'common.confirm': 'Bekreft',
+    'common.close': 'Lukk',
 
     // Bluetooth
     'bluetooth.title': 'Lydenhet',
@@ -949,7 +993,7 @@ const dictionaries: Dictionaries = {
     'connect.enterInviteLinkDescription': 'Fügen Sie einen Einladungslink ein, um einem Freund, Team oder einer Sitzung beizutreten.',
     'connect.inviteLinkPlaceholder': 'Einladungslink einfügen...',
     'connect.joinWithLink': 'Beitreten',
-    'connect.invalidLink': 'Ungültiger Link. Bitte fügen Sie einen vollständigen RideSquad-Einladungslink ein.',
+    'connect.invalidLink': 'Ungültiger Code oder Link. Fügen Sie einen RideSquad-Link ein oder geben Sie nur den Einladungscode ein.',
 
     // Friends
     'friends.title': 'Freunde',
@@ -979,6 +1023,16 @@ const dictionaries: Dictionaries = {
     'friends.shareInviteHint': 'Sende einen Link an jemanden, der RideSquad noch nicht hat.',
     'friends.inviteShareMessage': 'Komm zu mir auf RideSquad! {link}',
     'friends.inviteFailed': 'Einladung konnte nicht erstellt werden. Versuche es erneut.',
+    'friends.inviteOptions': 'Zu RideSquad einladen',
+    'friends.showQrCode': 'QR-Code anzeigen',
+    'friends.copyCode': 'Einladungscode kopieren',
+    'friends.codeCopied': 'Kopiert!',
+    'friends.codeCopiedHint': 'Füge den Code im Verbinden-Tab ein.',
+    'friends.sendEmail': 'Per E-Mail senden',
+    'friends.emailSubject': 'Komm zu mir auf RideSquad',
+    'friends.emailBody': 'Hey! Komm zu mir auf RideSquad.\n\nGib diesen Code im Verbinden-Tab der App ein:\n{code}\n\nOder tippe auf diesen Link:\n{link}',
+    'friends.qrCodeTitle': 'Zeige deinem Freund',
+    'friends.qrCodeHint': 'Freunde können den QR-Code mit der Kamera scannen oder den Code manuell im Verbinden-Tab eingeben.',
 
     // Teams
     'teams.title': 'Teams',
@@ -1048,6 +1102,7 @@ const dictionaries: Dictionaries = {
     'common.save': 'Speichern',
     'common.delete': 'Löschen',
     'common.confirm': 'Bestätigen',
+    'common.close': 'Schließen',
 
     // Bluetooth
     'bluetooth.title': 'Audiogerät',
@@ -1162,7 +1217,7 @@ const dictionaries: Dictionaries = {
     'connect.enterInviteLinkDescription': 'Pega un enlace de invitación para unirte a un amigo, equipo o sesión.',
     'connect.inviteLinkPlaceholder': 'Pegar enlace de invitación...',
     'connect.joinWithLink': 'Unirse',
-    'connect.invalidLink': 'Enlace inválido. Por favor pega un enlace de invitación completo de RideSquad.',
+    'connect.invalidLink': 'Código o enlace inválido. Pega un enlace de RideSquad o introduce solo el código de invitación.',
 
     // Friends
     'friends.title': 'Amigos',
@@ -1192,6 +1247,16 @@ const dictionaries: Dictionaries = {
     'friends.shareInviteHint': 'Envía un enlace a alguien que aún no tiene RideSquad.',
     'friends.inviteShareMessage': '¡Únete a mí en RideSquad! {link}',
     'friends.inviteFailed': 'No se pudo crear la invitación. Inténtalo de nuevo.',
+    'friends.inviteOptions': 'Invitar a RideSquad',
+    'friends.showQrCode': 'Mostrar código QR',
+    'friends.copyCode': 'Copiar código de invitación',
+    'friends.codeCopied': '¡Copiado!',
+    'friends.codeCopiedHint': 'Pega el código en la pestaña Conectar.',
+    'friends.sendEmail': 'Enviar por correo',
+    'friends.emailSubject': 'Únete a mí en RideSquad',
+    'friends.emailBody': '¡Hola! Únete a mí en RideSquad.\n\nEscribe este código en la pestaña Conectar de la app:\n{code}\n\nO toca este enlace:\n{link}',
+    'friends.qrCodeTitle': 'Muestra a tu amigo',
+    'friends.qrCodeHint': 'Pueden escanear el código QR con la cámara, o introducir el código manualmente en la pestaña Conectar.',
 
     // Teams
     'teams.title': 'Equipos',
@@ -1261,6 +1326,7 @@ const dictionaries: Dictionaries = {
     'common.save': 'Guardar',
     'common.delete': 'Eliminar',
     'common.confirm': 'Confirmar',
+    'common.close': 'Cerrar',
 
     // Bluetooth
     'bluetooth.title': 'Dispositivo de audio',

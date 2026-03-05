@@ -17,17 +17,25 @@ export default function ConnectScreen() {
 
   const handleJoinWithLink = () => {
     const trimmed = inviteLink.trim();
-    const match = trimmed.match(/invite\/(session|team|friend)\/([a-z0-9]+)/i);
-    if (!match) {
-      Alert.alert(t('common.error'), t('connect.invalidLink'));
+
+    // Full deep-link or URL containing the invite path
+    const urlMatch = trimmed.match(/invite\/(session|team|friend)\/([a-z0-9]+)/i);
+    if (urlMatch) {
+      const [, type, token] = urlMatch;
+      setInviteLink('');
+      router.push({ pathname: '/accept-invite', params: { type, token } } as any);
       return;
     }
-    const [, type, token] = match;
-    setInviteLink('');
-    router.push({
-      pathname: '/accept-invite',
-      params: { type, token },
-    } as any);
+
+    // Bare token pasted directly (e.g. copied from the Friends tab)
+    const bareMatch = trimmed.match(/^[a-z0-9]{6,}$/i);
+    if (bareMatch) {
+      setInviteLink('');
+      router.push({ pathname: '/accept-invite', params: { type: 'friend', token: trimmed } } as any);
+      return;
+    }
+
+    Alert.alert(t('common.error'), t('connect.invalidLink'));
   };
 
   return (
