@@ -56,13 +56,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <TabBarIcon name="cog" color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="test-connection"
-        options={{
-          title: 'Test',
-          tabBarIcon: ({ color }) => <TabBarIcon name="flask" color={color} />,
-        }}
-      />
+      {/* Hidden tabs — kept as files but not shown in the tab bar */}
+      <Tabs.Screen name="test-connection" options={{ href: null }} />
+      <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="two" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -8,10 +8,13 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
-  Share,
+  Modal,
+  Linking,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import * as Clipboard from 'expo-clipboard';
+import QRCode from 'react-native-qrcode-svg';
 
 import { Text } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -42,6 +45,12 @@ export default function TeamsScreen() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
   const [creating, setCreating] = useState(false);
+
+  // Invite state — per team
+  const [expandedInviteTeamId, setExpandedInviteTeamId] = useState<string | null>(null);
+  const [teamInviteTokens, setTeamInviteTokens] = useState<Record<string, string>>({});
+  const [teamInviteLoading, setTeamInviteLoading] = useState<string | null>(null);
+  const [qrModal, setQrModal] = useState<{ teamId: string; teamName: string; token: string } | null>(null);
 
   const loadTeams = useCallback(async () => {
     if (!profile) return;
@@ -99,6 +108,7 @@ export default function TeamsScreen() {
           onPress: async () => {
             try {
               await deleteTeam(teamId);
+              setExpandedInviteTeamId(null);
               await loadTeams();
             } catch (error: any) {
               Alert.alert(t('teams.error'), t('teams.deleteFailed'));
@@ -142,20 +152,54 @@ export default function TeamsScreen() {
     );
   };
 
-  const handleShareInvite = async (team: TeamWithMembers) => {
-    if (!profile) return;
+  // --------------------------------------------------------------------------
+  // Team invite helpers — one token per team per session
+  // --------------------------------------------------------------------------
+
+  const getOrCreateTeamToken = useCallback(async (teamId: string): Promise<string | null> => {
+    if (!profile) return null;
+    if (teamInviteTokens[teamId]) return teamInviteTokens[teamId];
+
+    setTeamInviteLoading(teamId);
     try {
-      const invite = await createInvite('team', team.id, profile.id);
-      const link = buildInviteLink('team', invite.token);
-      await Share.share({
-        message: t('teams.inviteMessage').replace('{name}', team.name).replace('{link}', link),
-      });
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        Alert.alert(t('teams.error'), t('teams.inviteFailed'));
-      }
+      const invite = await createInvite('team', teamId, profile.id);
+      setTeamInviteTokens((prev) => ({ ...prev, [teamId]: invite.token }));
+      return invite.token;
+    } catch (err: any) {
+      Alert.alert(t('teams.error'), t('teams.inviteFailed'));
+      return null;
+    } finally {
+      setTeamInviteLoading(null);
     }
-  };
+  }, [profile, teamInviteTokens, t]);
+
+  const handleTeamShowQr = useCallback(async (team: TeamWithMembers) => {
+    const token = await getOrCreateTeamToken(team.id);
+    if (!token) return;
+    setQrModal({ teamId: team.id, teamName: team.name, token });
+  }, [getOrCreateTeamToken]);
+
+  const handleTeamCopyLink = useCallback(async (teamId: string) => {
+    const token = await getOrCreateTeamToken(teamId);
+    if (!token) return;
+    await Clipboard.setStringAsync(buildInviteLink('team', token));
+    Alert.alert(t('friends.codeCopied'), t('friends.codeCopiedHint'));
+  }, [getOrCreateTeamToken, t]);
+
+  const handleTeamSendEmail = useCallback(async (team: TeamWithMembers) => {
+    const token = await getOrCreateTeamToken(team.id);
+    if (!token) return;
+    const link = buildInviteLink('team', token);
+    const subject = encodeURIComponent(
+      t('teams.emailSubject').replace('{name}', team.name)
+    );
+    const body = encodeURIComponent(
+      t('teams.inviteMessage').replace('{name}', team.name).replace('{link}', link)
+    );
+    Linking.openURL(`mailto:?subject=${subject}&body=${body}`);
+  }, [getOrCreateTeamToken, t]);
+
+  // --------------------------------------------------------------------------
 
   const isActive = (member: TeamMemberWithProfile): boolean => {
     if (!member.active_until) return false;
@@ -170,6 +214,10 @@ export default function TeamsScreen() {
     return team.members.find((m) => m.user_id === profile?.id);
   };
 
+  const toggleInviteSection = (teamId: string) => {
+    setExpandedInviteTeamId((prev) => (prev === teamId ? null : teamId));
+  };
+
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: palette.groupedBackground }]}>
@@ -179,176 +227,131 @@ export default function TeamsScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ backgroundColor: palette.groupedBackground }}
-      contentContainerStyle={[styles.container, { backgroundColor: palette.groupedBackground }]}
-      contentInsetAdjustmentBehavior="automatic"
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
-      }
-    >
-      <Text style={styles.title}>{t('tabs.teams')}</Text>
+    <>
+      <ScrollView
+        style={{ backgroundColor: palette.groupedBackground }}
+        contentContainerStyle={[styles.container, { backgroundColor: palette.groupedBackground }]}
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+        }
+      >
+        <Text style={styles.title}>{t('tabs.teams')}</Text>
 
-      {/* Create Team Button / Form */}
-      {!showCreateForm ? (
-        <TouchableOpacity
-          style={[styles.createButton, { backgroundColor: palette.tint }]}
-          onPress={() => setShowCreateForm(true)}
-        >
-          <FontAwesome name="plus" size={16} color="#fff" />
-          <Text style={styles.createButtonText}>{t('teams.createTeam')}</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={[styles.card, { backgroundColor: palette.cardBackground, borderColor: palette.separator }]}>
-          <Text style={styles.cardTitle}>{t('teams.createTeam')}</Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: palette.groupedBackground,
-                color: colorScheme === 'dark' ? '#fff' : '#000',
-                borderColor: palette.separator,
-              },
-            ]}
-            placeholder={t('teams.teamNamePlaceholder')}
-            placeholderTextColor={palette.secondaryText}
-            value={newTeamName}
-            onChangeText={setNewTeamName}
-            autoFocus
-            editable={!creating}
-          />
-          <View style={styles.formActions}>
-            <TouchableOpacity
-              style={[styles.cancelButton, { borderColor: palette.separator }]}
-              onPress={() => { setShowCreateForm(false); setNewTeamName(''); }}
-              disabled={creating}
-            >
-              <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000' }}>{t('common.cancel')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: palette.tint, opacity: newTeamName.trim() ? 1 : 0.5 }]}
-              onPress={handleCreateTeam}
-              disabled={!newTeamName.trim() || creating}
-            >
-              {creating ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.submitButtonText}>{t('common.save')}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* Teams List */}
-      {teams.length === 0 ? (
-        <View style={[styles.card, { backgroundColor: palette.cardBackground, borderColor: palette.separator }]}>
-          <Text style={[styles.emptyState, { color: palette.secondaryText }]}>
-            {t('teams.noTeams')}
-          </Text>
-          <Text style={[styles.emptyStateHint, { color: palette.secondaryText }]}>
-            {t('teams.noTeamsHint')}
-          </Text>
-        </View>
-      ) : (
-        teams.map((team) => {
-          const activeMembers = team.members.filter(isActive);
-          const myMembership = getMyMembership(team);
-          const amActive = myMembership ? isActive(myMembership) : false;
-          const amOwner = isOwner(team);
-
-          return (
-            <View
-              key={team.id}
-              style={[styles.card, { backgroundColor: palette.cardBackground, borderColor: palette.separator }]}
-            >
-              {/* Team Header */}
-              <View style={styles.teamHeader}>
-                <View style={styles.teamHeaderLeft}>
-                  <Text style={styles.cardTitle}>{team.name}</Text>
-                  <Text style={[styles.memberCount, { color: palette.secondaryText }]}>
-                    {t('teams.memberCount').replace('{count}', String(team.member_count))}
-                  </Text>
-                </View>
-                {amOwner && (
-                  <View style={styles.teamActions}>
-                    <TouchableOpacity
-                      style={styles.iconButton}
-                      onPress={() => handleShareInvite(team)}
-                    >
-                      <FontAwesome name="share-alt" size={18} color={palette.tint} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.iconButton}
-                      onPress={() => handleDeleteTeam(team.id, team.name)}
-                    >
-                      <FontAwesome name="trash-o" size={18} color="#FF3B30" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-
-              {/* Active Members */}
-              <Text style={[styles.sectionLabel, { color: palette.secondaryText }]}>
-                {t('teams.activeMembers')} ({activeMembers.length})
-              </Text>
-              {activeMembers.length > 0 ? (
-                activeMembers.map((member) => (
-                  <View key={member.id} style={styles.memberRow}>
-                    <View style={[styles.avatar, { backgroundColor: palette.tint }]}>
-                      <Text style={styles.avatarText}>
-                        {(member.profile?.display_name ?? '?').charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', flex: 1 }}>
-                      {member.profile?.display_name ?? t('teams.unknownMember')}
-                    </Text>
-                    <View style={[styles.activeIndicator, { backgroundColor: '#34C759' }]} />
-                  </View>
-                ))
-              ) : (
-                <Text style={[styles.noMembers, { color: palette.secondaryText }]}>
-                  {t('teams.noActiveMembers')}
-                </Text>
-              )}
-
-              {/* Your Status */}
-              <View style={styles.statusSection}>
-                {amActive ? (
-                  <View style={[styles.statusBadge, { backgroundColor: '#34C75920' }]}>
-                    <FontAwesome name="check-circle" size={14} color="#34C759" />
-                    <Text style={{ color: '#34C759', fontSize: 14, marginLeft: 6 }}>
-                      {t('teams.statusActive')}
-                    </Text>
-                  </View>
+        {/* Create Team Button / Form */}
+        {!showCreateForm ? (
+          <TouchableOpacity
+            style={[styles.createButton, { backgroundColor: palette.tint }]}
+            onPress={() => setShowCreateForm(true)}
+          >
+            <FontAwesome name="plus" size={16} color="#fff" />
+            <Text style={styles.createButtonText}>{t('teams.createTeam')}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={[styles.card, { backgroundColor: palette.cardBackground, borderColor: palette.separator }]}>
+            <Text style={styles.cardTitle}>{t('teams.createTeam')}</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: palette.groupedBackground,
+                  color: colorScheme === 'dark' ? '#fff' : '#000',
+                  borderColor: palette.separator,
+                },
+              ]}
+              placeholder={t('teams.teamNamePlaceholder')}
+              placeholderTextColor={palette.secondaryText}
+              value={newTeamName}
+              onChangeText={setNewTeamName}
+              autoFocus
+              editable={!creating}
+            />
+            <View style={styles.formActions}>
+              <TouchableOpacity
+                style={[styles.cancelButton, { borderColor: palette.separator }]}
+                onPress={() => { setShowCreateForm(false); setNewTeamName(''); }}
+                disabled={creating}
+              >
+                <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000' }}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, { backgroundColor: palette.tint, opacity: newTeamName.trim() ? 1 : 0.5 }]}
+                onPress={handleCreateTeam}
+                disabled={!newTeamName.trim() || creating}
+              >
+                {creating ? (
+                  <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <TouchableOpacity
-                    style={[styles.reactivateButton, { backgroundColor: palette.tint }]}
-                    onPress={() => handleReactivate(team.id)}
-                  >
-                    <Text style={styles.reactivateButtonText}>{t('teams.reactivate')}</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.submitButtonText}>{t('common.save')}</Text>
                 )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
-                {!amOwner && (
-                  <TouchableOpacity
-                    style={styles.leaveButton}
-                    onPress={() => handleLeaveTeam(team.id, team.name)}
-                  >
-                    <Text style={{ color: '#FF3B30', fontSize: 14 }}>{t('teams.leave')}</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+        {/* Teams List */}
+        {teams.length === 0 ? (
+          <View style={[styles.card, { backgroundColor: palette.cardBackground, borderColor: palette.separator }]}>
+            <Text style={[styles.emptyState, { color: palette.secondaryText }]}>
+              {t('teams.noTeams')}
+            </Text>
+            <Text style={[styles.emptyStateHint, { color: palette.secondaryText }]}>
+              {t('teams.noTeamsHint')}
+            </Text>
+          </View>
+        ) : (
+          teams.map((team) => {
+            const activeMembers = team.members.filter(isActive);
+            const myMembership = getMyMembership(team);
+            const amActive = myMembership ? isActive(myMembership) : false;
+            const amOwner = isOwner(team);
+            const inviteExpanded = expandedInviteTeamId === team.id;
+            const isLoadingInvite = teamInviteLoading === team.id;
 
-              {/* Owner: All Members */}
-              {amOwner && (
-                <>
-                  <Text style={[styles.sectionLabel, { color: palette.secondaryText, marginTop: 12 }]}>
-                    {t('teams.allMembers')}
-                  </Text>
-                  {team.members.map((member) => (
+            return (
+              <View
+                key={team.id}
+                style={[styles.card, { backgroundColor: palette.cardBackground, borderColor: palette.separator }]}
+              >
+                {/* Team Header */}
+                <View style={styles.teamHeader}>
+                  <View style={styles.teamHeaderLeft}>
+                    <Text style={styles.cardTitle}>{team.name}</Text>
+                    <Text style={[styles.memberCount, { color: palette.secondaryText }]}>
+                      {t('teams.memberCount').replace('{count}', String(team.member_count))}
+                    </Text>
+                  </View>
+                  {amOwner && (
+                    <View style={styles.teamActions}>
+                      {/* Invite toggle — tapping opens the 3 invite options */}
+                      <TouchableOpacity
+                        style={styles.iconButton}
+                        onPress={() => toggleInviteSection(team.id)}
+                      >
+                        <FontAwesome
+                          name={inviteExpanded ? 'chevron-up' : 'share-alt'}
+                          size={18}
+                          color={inviteExpanded ? palette.secondaryText : palette.tint}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.iconButton}
+                        onPress={() => handleDeleteTeam(team.id, team.name)}
+                      >
+                        <FontAwesome name="trash-o" size={18} color="#FF3B30" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+
+                {/* Active Members */}
+                <Text style={[styles.sectionLabel, { color: palette.secondaryText }]}>
+                  {t('teams.activeMembers')} ({activeMembers.length})
+                </Text>
+                {activeMembers.length > 0 ? (
+                  activeMembers.map((member) => (
                     <View key={member.id} style={styles.memberRow}>
-                      <View style={[styles.avatar, { backgroundColor: isActive(member) ? palette.tint : palette.separator }]}>
+                      <View style={[styles.avatar, { backgroundColor: palette.tint }]}>
                         <Text style={styles.avatarText}>
                           {(member.profile?.display_name ?? '?').charAt(0).toUpperCase()}
                         </Text>
@@ -356,22 +359,188 @@ export default function TeamsScreen() {
                       <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', flex: 1 }}>
                         {member.profile?.display_name ?? t('teams.unknownMember')}
                       </Text>
-                      {isActive(member) ? (
-                        <View style={[styles.activeIndicator, { backgroundColor: '#34C759' }]} />
-                      ) : (
-                        <Text style={{ color: palette.secondaryText, fontSize: 12 }}>
-                          {t('teams.inactive')}
-                        </Text>
-                      )}
+                      <View style={[styles.activeIndicator, { backgroundColor: '#34C759' }]} />
                     </View>
-                  ))}
-                </>
+                  ))
+                ) : (
+                  <Text style={[styles.noMembers, { color: palette.secondaryText }]}>
+                    {t('teams.noActiveMembers')}
+                  </Text>
+                )}
+
+                {/* Your Status */}
+                <View style={styles.statusSection}>
+                  {amActive ? (
+                    <View style={[styles.statusBadge, { backgroundColor: '#34C75920' }]}>
+                      <FontAwesome name="check-circle" size={14} color="#34C759" />
+                      <Text style={{ color: '#34C759', fontSize: 14, marginLeft: 6 }}>
+                        {t('teams.statusActive')}
+                      </Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.reactivateButton, { backgroundColor: palette.tint }]}
+                      onPress={() => handleReactivate(team.id)}
+                    >
+                      <Text style={styles.reactivateButtonText}>{t('teams.reactivate')}</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {!amOwner && (
+                    <TouchableOpacity
+                      style={styles.leaveButton}
+                      onPress={() => handleLeaveTeam(team.id, team.name)}
+                    >
+                      <Text style={{ color: '#FF3B30', fontSize: 14 }}>{t('teams.leave')}</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Owner: All Members */}
+                {amOwner && (
+                  <>
+                    <Text style={[styles.sectionLabel, { color: palette.secondaryText, marginTop: 12 }]}>
+                      {t('teams.allMembers')}
+                    </Text>
+                    {team.members.map((member) => (
+                      <View key={member.id} style={styles.memberRow}>
+                        <View style={[styles.avatar, { backgroundColor: isActive(member) ? palette.tint : palette.separator }]}>
+                          <Text style={styles.avatarText}>
+                            {(member.profile?.display_name ?? '?').charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', flex: 1 }}>
+                          {member.profile?.display_name ?? t('teams.unknownMember')}
+                        </Text>
+                        {isActive(member) ? (
+                          <View style={[styles.activeIndicator, { backgroundColor: '#34C759' }]} />
+                        ) : (
+                          <Text style={{ color: palette.secondaryText, fontSize: 12 }}>
+                            {t('teams.inactive')}
+                          </Text>
+                        )}
+                      </View>
+                    ))}
+                  </>
+                )}
+
+                {/* ── 3 Invite Options (owner only, expandable) ── */}
+                {amOwner && inviteExpanded && (
+                  <>
+                    <View style={[styles.divider, { backgroundColor: palette.separator }]} />
+                    <Text style={[styles.sectionLabel, { color: palette.secondaryText }]}>
+                      {t('teams.inviteOptions')}
+                    </Text>
+
+                    {/* 1. Show QR Code */}
+                    <TouchableOpacity
+                      style={styles.inviteRow}
+                      onPress={() => handleTeamShowQr(team)}
+                      disabled={isLoadingInvite}
+                    >
+                      <View style={[styles.inviteIconBox, { backgroundColor: palette.tint + '22' }]}>
+                        <FontAwesome name="qrcode" size={20} color={palette.tint} />
+                      </View>
+                      <Text style={[styles.inviteRowTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+                        {t('friends.showQrCode')}
+                      </Text>
+                      {isLoadingInvite ? (
+                        <ActivityIndicator size="small" color={palette.tint} />
+                      ) : (
+                        <FontAwesome name="chevron-right" size={13} color={palette.secondaryText} />
+                      )}
+                    </TouchableOpacity>
+
+                    {/* 2. Copy Invite Link */}
+                    <TouchableOpacity
+                      style={styles.inviteRow}
+                      onPress={() => handleTeamCopyLink(team.id)}
+                      disabled={isLoadingInvite}
+                    >
+                      <View style={[styles.inviteIconBox, { backgroundColor: palette.tint + '22' }]}>
+                        <FontAwesome name="copy" size={18} color={palette.tint} />
+                      </View>
+                      <Text style={[styles.inviteRowTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+                        {t('friends.copyCode')}
+                      </Text>
+                      {isLoadingInvite ? (
+                        <ActivityIndicator size="small" color={palette.tint} />
+                      ) : (
+                        <FontAwesome name="chevron-right" size={13} color={palette.secondaryText} />
+                      )}
+                    </TouchableOpacity>
+
+                    {/* 3. Send via Email */}
+                    <TouchableOpacity
+                      style={styles.inviteRow}
+                      onPress={() => handleTeamSendEmail(team)}
+                      disabled={isLoadingInvite}
+                    >
+                      <View style={[styles.inviteIconBox, { backgroundColor: palette.tint + '22' }]}>
+                        <FontAwesome name="envelope" size={16} color={palette.tint} />
+                      </View>
+                      <Text style={[styles.inviteRowTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+                        {t('friends.sendEmail')}
+                      </Text>
+                      {isLoadingInvite ? (
+                        <ActivityIndicator size="small" color={palette.tint} />
+                      ) : (
+                        <FontAwesome name="chevron-right" size={13} color={palette.secondaryText} />
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            );
+          })
+        )}
+      </ScrollView>
+
+      {/* ── QR Code Modal for Team Invite ── */}
+      <Modal
+        visible={qrModal !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setQrModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: palette.cardBackground }]}>
+            <Text style={[styles.modalTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+              {qrModal?.teamName}
+            </Text>
+            <Text style={[styles.modalSubtitle, { color: palette.secondaryText }]}>
+              {t('friends.qrCodeTitle')}
+            </Text>
+
+            <View style={styles.qrBox}>
+              {qrModal && (
+                <QRCode
+                  value={buildInviteLink('team', qrModal.token)}
+                  size={220}
+                  color="#000000"
+                  backgroundColor="#FFFFFF"
+                />
               )}
             </View>
-          );
-        })
-      )}
-    </ScrollView>
+
+            <Text style={[styles.modalToken, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+              {qrModal?.token}
+            </Text>
+
+            <Text style={[styles.modalHint, { color: palette.secondaryText }]}>
+              {t('friends.qrCodeHint')}
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.closeButton, { backgroundColor: palette.tint }]}
+              onPress={() => setQrModal(null)}
+            >
+              <Text style={styles.closeButtonText}>{t('common.close')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -538,5 +707,79 @@ const styles = StyleSheet.create({
   leaveButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
+  },
+  // Invite section
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 12,
+  },
+  inviteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 12,
+  },
+  inviteIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inviteRowTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    flex: 1,
+  },
+  // QR Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    width: '100%',
+    gap: 14,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: -8,
+  },
+  qrBox: {
+    padding: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+  },
+  modalToken: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+  modalHint: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  closeButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
