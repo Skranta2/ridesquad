@@ -12,12 +12,8 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useTranslation } from '../localization/i18n';
 import { useTheme } from '../context/ThemeContext';
 import { useUserProfile } from '../context/UserProfileContext';
-import {
-  getInviteByToken,
-  acceptInvite,
-  addTeamMember,
-  addMutualFavorites,
-} from '../lib/database';
+import { supabase } from '../lib/supabase';
+import { getInviteByToken, acceptInvite } from '../lib/database';
 import type { Invite } from '../lib/types';
 
 export default function AcceptInviteScreen() {
@@ -76,23 +72,29 @@ export default function AcceptInviteScreen() {
 
     setAccepting(true);
     try {
-      // Mark invite as used
-      await acceptInvite(invite.id, profile.id);
-
       if (invite.type === 'team') {
-        // Add user as team member with 24h active status
-        await addTeamMember(invite.target_id, profile.id);
+        // Server-side function: validates invite, adds member, marks used — all atomically
+        const { error } = await supabase.rpc('accept_team_invite', {
+          p_invite_id: invite.id,
+          p_user_id: profile.id,
+        });
+        if (error) throw error;
         Alert.alert(t('invite.success'), t('invite.teamJoined'), [
           { text: 'OK', onPress: () => router.replace('/(tabs)/teams') },
         ]);
       } else if (invite.type === 'friend') {
-        // Add mutual favorites (both users become favorites of each other)
-        await addMutualFavorites(invite.created_by, profile.id);
+        // Server-side function: adds mutual favorites for both users, marks used — all atomically
+        const { error } = await supabase.rpc('accept_friend_invite', {
+          p_invite_id: invite.id,
+          p_user_id: profile.id,
+        });
+        if (error) throw error;
         Alert.alert(t('invite.success'), t('invite.friendAdded'), [
           { text: 'OK', onPress: () => router.replace('/(tabs)/friends') },
         ]);
       } else {
-        // Session invite — navigate to connect tab
+        // Session invite — simple mark-as-used for now
+        await acceptInvite(invite.id, profile.id);
         Alert.alert(t('invite.success'), t('invite.sessionJoined'), [
           { text: 'OK', onPress: () => router.replace('/(tabs)/connect') },
         ]);
