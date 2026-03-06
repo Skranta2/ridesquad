@@ -49,6 +49,7 @@ export interface Favorite {
   target_user_id: string;
   status: 'favorite' | 'waitlisted';
   position: number | null;
+  notes: string | null;
   created_at: string;
 }
 

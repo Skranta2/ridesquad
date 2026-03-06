@@ -555,6 +555,90 @@ export async function searchProfiles(
 }
 
 // ============================================================================
+// FAVORITE MANAGEMENT (notes, waitlist move, promote)
+// ============================================================================
+
+export async function updateFavoriteNotes(favoriteId: string, notes: string): Promise<void> {
+  const { error } = await supabase
+    .from('favorites')
+    .update({ notes: notes.trim() || null })
+    .eq('id', favoriteId);
+
+  if (error) {
+    console.error('Error updating favorite notes:', error);
+    throw error;
+  }
+}
+
+export async function moveFavoriteToWaitlist(favoriteId: string, ownerId: string): Promise<void> {
+  // Find the current max waitlist position so we append at the end
+  const { data: maxRow } = await supabase
+    .from('favorites')
+    .select('position')
+    .eq('owner_id', ownerId)
+    .eq('status', 'waitlisted')
+    .order('position', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextPosition = (maxRow?.position ?? 0) + 1;
+
+  const { error } = await supabase
+    .from('favorites')
+    .update({ status: 'waitlisted', position: nextPosition })
+    .eq('id', favoriteId);
+
+  if (error) {
+    console.error('Error moving favorite to waitlist:', error);
+    throw error;
+  }
+}
+
+export async function promoteWaitlistToFavorite(favoriteId: string, ownerId: string): Promise<void> {
+  // Count current favorites (not waitlisted) to enforce 15-cap
+  const { count, error: countError } = await supabase
+    .from('favorites')
+    .select('*', { count: 'exact', head: true })
+    .eq('owner_id', ownerId)
+    .eq('status', 'favorite');
+
+  if (countError) throw countError;
+
+  if ((count ?? 0) >= 15) {
+    throw new Error('favorites_full');
+  }
+
+  const { error } = await supabase
+    .from('favorites')
+    .update({ status: 'favorite', position: null })
+    .eq('id', favoriteId);
+
+  if (error) {
+    console.error('Error promoting waitlist to favorite:', error);
+    throw error;
+  }
+}
+
+// Outgoing friend invites that haven't been accepted yet
+export async function getMyPendingInvites(userId: string): Promise<Invite[]> {
+  const { data, error } = await supabase
+    .from('invites')
+    .select('*')
+    .eq('created_by', userId)
+    .eq('type', 'friend')
+    .is('used_at', null)
+    .gte('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching pending invites:', error);
+    throw error;
+  }
+
+  return data ?? [];
+}
+
+// ============================================================================
 // MUTUAL FAVORITES (friend invites add both directions)
 // ============================================================================
 
