@@ -161,22 +161,32 @@ export default function FriendsScreen() {
   // ── Invite helpers ────────────────────────────────────────────────────────
 
   const getOrCreateToken = useCallback(async (): Promise<string | null> => {
-    if (!profile) return null;
-    if (inviteToken) return inviteToken;
+    if (!profile) {
+      console.log('[Friends] getOrCreateToken: profile is null');
+      return null;
+    }
+    if (inviteToken) {
+      console.log('[Friends] getOrCreateToken: reusing cached token', inviteToken);
+      return inviteToken;
+    }
 
     setInviteLoading(true);
     try {
+      console.log('[Friends] getOrCreateToken: creating invite for', profile.id);
       const invite = await createInvite('friend', profile.id, profile.id);
+      console.log('[Friends] getOrCreateToken: invite created, token =', invite.token);
       setInviteToken(invite.token);
-      await loadData(); // refresh pending section
+      // Refresh pending section in background (don't await — not critical for copy)
+      loadData().catch(() => {});
       return invite.token;
     } catch (err: any) {
+      console.error('[Friends] getOrCreateToken FAILED:', err);
       Alert.alert(t('common.error'), t('friends.inviteFailed'));
       return null;
     } finally {
       setInviteLoading(false);
     }
-  }, [profile, inviteToken, t]);
+  }, [profile, inviteToken, t, loadData]);
 
   const handleShowQr = useCallback(async () => {
     const token = await getOrCreateToken();
@@ -185,9 +195,15 @@ export default function FriendsScreen() {
   }, [getOrCreateToken]);
 
   const handleCopyCode = useCallback(async () => {
+    console.log('[Friends] handleCopyCode: pressed');
     const token = await getOrCreateToken();
-    if (!token) return;
-    await Clipboard.setStringAsync(buildInviteLink('friend', token));
+    if (!token) {
+      console.log('[Friends] handleCopyCode: no token — aborting');
+      return;
+    }
+    const link = buildInviteLink('friend', token);
+    console.log('[Friends] handleCopyCode: copying link =', link);
+    await Clipboard.setStringAsync(link);
     Alert.alert(t('friends.codeCopied'), t('friends.codeCopiedHint'));
   }, [getOrCreateToken, t]);
 
